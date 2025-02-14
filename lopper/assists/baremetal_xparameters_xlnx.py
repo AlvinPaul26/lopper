@@ -392,7 +392,7 @@ def xlnx_generate_xparams(tgt_node, sdt, options):
     for node in node_list:
         try:
             label_name = bm_config.get_label(sdt, symbol_node, node)
-            if label_name != None:
+            if label_name is not None:
                 label_name = label_name.upper()
             val = bm_config.scan_reg_size(node, node['reg'].value, 0)
             plat.buf(f'\n/* Definitions for peripheral {label_name} */')
@@ -407,9 +407,18 @@ def xlnx_generate_xparams(tgt_node, sdt, options):
 
             canonical_name = node_ip_name.upper().replace("-", "_")
 
-            plat.buf(f'\n/* Canonical definitions for peripheral {label_name} */')
-            plat.buf(f'\n#define XPAR_{canonical_name}_{node_ip_count_dict[node_ip_name]}_BASEADDR {hex(val[0])}\n')
-            plat.buf(f'#define XPAR_{canonical_name}_{node_ip_count_dict[node_ip_name]}_HIGHADDR {hex(val[0] + val[1] - 1)}\n')
+            # Check if canonical_name matches any label_name in node_list
+            label_names_in_list = [
+                bm_config.get_label(sdt, symbol_node, n).upper()
+                for n in node_list
+                if bm_config.get_label(sdt, symbol_node, n) is not None
+            ]
+
+            canonical_def_name = f'{canonical_name}_{node_ip_count_dict[node_ip_name]}'
+            if canonical_def_name not in label_names_in_list:
+                plat.buf(f'\n/* Canonical definitions for peripheral {label_name} */')
+                plat.buf(f'\n#define XPAR_{canonical_name}_{node_ip_count_dict[node_ip_name]}_BASEADDR {hex(val[0])}\n')
+                plat.buf(f'#define XPAR_{canonical_name}_{node_ip_count_dict[node_ip_name]}_HIGHADDR {hex(val[0] + val[1] - 1)}\n')
         except KeyError:
             pass
 
@@ -420,7 +429,7 @@ def xlnx_generate_xparams(tgt_node, sdt, options):
         plat.buf(f"\n#define XPS_BOARD_{board.upper()}\n")
     
     # Memory Node related defines
-    mem_ranges = get_memranges(tgt_node, sdt, options)
+    mem_ranges, _ = get_memranges(tgt_node, sdt, options)
     for key, value in sorted(mem_ranges.items(), key=lambda e: e[1][1], reverse=True):
         start,size = value[0], value[1]
         suffix = "ADDRESS"

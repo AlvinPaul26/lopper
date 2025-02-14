@@ -36,6 +36,10 @@ from devicetree import edtlib
 from lopper.fmt import LopperFmt
 
 import lopper.base
+import lopper.log
+
+lopper.log._init( __name__ )
+lopper.log._init( "dt.py" )
 
 class LopperDT(lopper.base.lopper_base):
     """The Lopper Class contains static methods for manipulating DT
@@ -55,12 +59,11 @@ class LopperDT(lopper.base.lopper_base):
         # if we get a schema in the future:
         # dt = edtlib.DT( dts_file )
 
-        if verbose > 4:
-            print( "[DBG+++]: dumping device tree:" )
-            for node in dt.node_iter():
-                print( node.name )
-                for p in  node.props:
-                    print( "   %s" % p )
+        lopper.log._debug( "[DBG+++]: dumping device tree:" )
+        for node in dt.node_iter():
+            lopper.log._debug( node.name )
+            for p in  node.props:
+                lopper.log._debug( f"   {p}" )
 
         return dt
 
@@ -237,10 +240,9 @@ class LopperDT(lopper.base.lopper_base):
         else:
             dct["__fdt_phandle__"] = -1
 
-        if verbose:
-            print( "[DBG]: lopper.dt export: " )
-            print( "[DBG]:     nodes: %s" % (nodes) )
-            print( "[DBG]:          props: %s" % np )
+        lopper.log._info( "[DBG]: lopper.dt export: " )
+        lopper.log._info( f"[DBG]:     nodes: {nodes}" )
+        lopper.log._info( f"[DBG]:          props: {np}" )
 
         for i,n in nodes.items():
             # Children are indexed by their path (/foo/bar), since properties
@@ -274,7 +276,7 @@ class LopperDT(lopper.base.lopper_base):
             property_val = LopperDT.property_value_decode( v.value, 0, LopperFmt.COMPOUND, LopperFmt.DEC )
             prop_dict[v.name] = property_val
             if type_hints:
-                prop_dict['__{}_type__'.format(v.name)] = LopperDT.property_type_guess( v.value )
+                prop_dict[f'__{v.name}_type__'] = LopperDT.property_type_guess( v.value )
 
         return prop_dict
 

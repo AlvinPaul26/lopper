@@ -6,12 +6,14 @@ name = "pypi"
 [packages]
 flask = "*"
 flask-restful = "*"
-pandas = "*"
 "ruamel.yaml" = "*"
 anytree = "*"
 humanfriendly = "*"
+pandas = "*"
+packaging = "*"
+setuptools = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.7"
+python_version = "3.10"

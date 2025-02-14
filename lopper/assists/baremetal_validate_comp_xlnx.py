@@ -49,7 +49,7 @@ def check_for_mem(sdt, options, mem_type, required_mem):
     if required_mem.get("size", {}):
         required_mem_size = required_mem["size"]
 
-    mem_ranges = get_memranges(sdt.tree['/'], sdt, options)
+    mem_ranges, _ = get_memranges(sdt.tree['/'], sdt, options)
     for key, value in sorted(mem_ranges.items(), key=lambda e: e[1][1], reverse=True):
         start,size = value[0], value[1]
         if mem_type == "any" or re.search(mem_type, key):
@@ -98,7 +98,7 @@ def xlnx_baremetal_validate_comp(tgt_node, sdt, options):
     src_path = src_path.rstrip(os.path.sep)
     name = utils.get_base_name(utils.get_dir_path(src_path))
     # Incase of versioned component strip the version info
-    name = re.split("_v(\d+)_(\d+)", name)[0]
+    name = re.split(r"_v(\d+)_(\d+)", name)[0]
     yaml_file = os.path.join(utils.get_dir_path(src_path), "data", f"{name}.yaml")
     if not utils.is_file(yaml_file):
         print(f"{name} Comp doesn't have yaml file")

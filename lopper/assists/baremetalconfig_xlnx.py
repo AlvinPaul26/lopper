@@ -473,6 +473,26 @@ def xlnx_generate_prop(sdt, node, prop, drvprop_list, plat, pad, phandle_prop):
         clkprop_val = get_clock_prop(sdt, node[prop].value)
         plat.buf('\n\t\t%s' % hex(clkprop_val))
         drvprop_list.append(hex(clkprop_val))
+    elif prop == "mdioproducer-baseaddr":
+        if node.propval('phy-handle') == ['']:
+            drvprop_list.append(hex(0))
+            plat.buf('\n\t\t%s' % hex(0))
+        else:
+            # two possible scenarios phy-handle property is part of mac node or part of mdio node handle both the cases
+            parent_node = [node1.parent for node1 in sdt.tree['/'].subnodes() if node1.phandle == node['phy-handle'].value[0]]
+            if parent_node:
+                # if parent node has reg property it's mac node other wise its mdio node
+                if parent_node[0].propval('reg') != ['']:
+                    reg, size = scan_reg_size(parent_node[0], parent_node[0]['reg'].value, 0)
+                    drvprop_list.append(hex(reg))
+                    plat.buf('\n\t\t%s' % hex(reg))
+                elif parent_node[0].parent.propval('reg') != ['']:
+                    reg, size = scan_reg_size(parent_node[0].parent, parent_node[0].parent['reg'].value, 0)
+                    drvprop_list.append(hex(reg))
+                    plat.buf('\n\t\t%s' % hex(reg))
+            else:
+                drvprop_list.append(hex(0))
+                plat.buf('\n\t\t%s' % hex(0))
     elif prop == "child,required":
         plat.buf('\n\t\t{')
         numsplits = 0
@@ -633,7 +653,7 @@ def xlnx_generate_bm_config(tgt_node, sdt, options):
     drvpath = utils.get_dir_path(src_dir.rstrip(os.sep))
     drvname = utils.get_base_name(drvpath)
     # Incase of versioned driver strip the version info
-    drvname = re.split("_v(\d+)_(\d+)", drvname)[0]
+    drvname = re.split(r"_v(\d+)_(\d+)", drvname)[0]
     yaml_file = os.path.join(drvpath, f"data/{drvname}.yaml")
     if not utils.is_file(yaml_file):
         print(f"{drvname} Driver doesn't have yaml file")
@@ -651,8 +671,8 @@ def xlnx_generate_bm_config(tgt_node, sdt, options):
     if driver_proplist == []:
         return True
     driver_nodes = []
-    for compat in driver_compatlist:
-        for node in node_list:
+    for node in node_list:
+        for compat in driver_compatlist:
            compat_string = node['compatible'].value
            for compa in compat_string:
                if compat in compa:

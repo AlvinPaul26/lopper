@@ -128,6 +128,10 @@ class LopperProp():
         else:
             # we want to avoid the overriden __setattr__ below
             self.__dict__["value"] = value
+            # set a default ptype, since before the property is
+            # resolved, it may be used in some sort of test that
+            # needs a type
+            self.ptype = self.property_type_guess()
 
 
     def __deepcopy__(self, memodict={}):
@@ -405,8 +409,8 @@ class LopperProp():
                         # check for "&" to designate that it is a phandle, if it isn't
                         # there, throw an error. If it is there, remove it, since we
                         # don't use it for the lookup.
-                        if re.search( '&', lop_compare_value ):
-                            lop_compare_value = re.sub( '&', '', lop_compare_value )
+                        if re.search( r'&', lop_compare_value ):
+                            lop_compare_value = re.sub( r'&', '', lop_compare_value )
 
                             # this is a phandle, but is currently a string, we need to
                             # resolve the value.
@@ -434,9 +438,13 @@ class LopperProp():
 
                 if other_prop.ptype == LopperFmt.STRING or \
                              self.ptype == LopperFmt.STRING: # type(lop_compare_value) == str:
-                    constructed_condition = "{0} re.search(\"{1}\",'{2}')".format(invert_check,lop_compare_value,tgt_node_compare_value)
+                    constructed_condition = f"{invert_check} re.search(r\"{lop_compare_value}\",'{tgt_node_compare_value}')"
                 elif other_prop.ptype == LopperFmt.UINT32: # type(lop_compare_value) == int:
-                    constructed_condition = "{0} {1} == {2}".format(invert_check,lop_compare_value,tgt_node_compare_value)
+                    constructed_condition = f"{invert_check} {lop_compare_value} == {tgt_node_compare_value}"
+                else:
+                    lopper.log._warning( f"comparison property [{other_prop.name}] {other_prop.node.abs_path}"
+                                         f" has an invalid type: {other_prop.ptype}, skipping test" )
+                    return False
 
                 if self.__dbg__ > 2:
                     lopper.log._debug( f"    single:single. Condition: {constructed_condition}" )
@@ -458,10 +466,10 @@ class LopperProp():
 
                     # otherwise, run the compare
                     if self.ptype == LopperFmt.STRING: # type(lop_compare_value) == str:
-                        constructed_condition = "{0} re.search(\"{1}\",\"{2}\")".format(invert_check,lop_compare_value,tgt_node_compare_value)
+                        constructed_condition = f"{invert_check} re.search(r\"{lop_compare_value}\",\"{tgt_node_compare_value}\")"
 
                     elif self.ptype == LopperFmt.UINT32: # type(lop_compare_value) == int:
-                        constructed_condition = "{0} {1} == {2}".format(invert_check,lop_compare_value,tgt_node_compare_value)
+                        constructed_condition = f"{invert_check} {lop_compare_value} == {tgt_node_compare_value}"
 
                     if self.__dbg__ > 2:
                         lopper.log._debug( f"    single:list. Condition: {constructed_condition}" )
@@ -485,10 +493,10 @@ class LopperProp():
 
                     # otherwise, run the compare
                     if self.ptype == LopperFmt.STRING: # type(lop_compare_value) == str:
-                        constructed_condition = "{0} re.search(\"{1}\",\"{2}\")".format(invert_check,lop_compare_value,tgt_node_compare_value)
+                        constructed_condition = f"{invert_check} re.search(r\"{lop_compare_value}\",\"{tgt_node_compare_value}\")"
 
                     elif self.ptype == LopperFmt.UINT32: # type(lop_compare_value) == int:
-                        constructed_condition = "{0} {1} == {2}".format(invert_check,lop_compare_value,tgt_node_compare_value)
+                        constructed_condition = f"{invert_check} {lop_compare_value} == {tgt_node_compare_value}"
 
                     if self.__dbg__ > 2:
                         lopper.log._debug( f"    list:single. Condition: {constructed_condition}" )
@@ -557,7 +565,7 @@ class LopperProp():
                 compat = self.node["compatible"]
                 is_lop = False
                 for c in compat.value:
-                    if re.search( "system-device-tree-v1,lop", c ):
+                    if re.search( r"system-device-tree-v1,lop", c ):
                         is_lop = True
 
                 # lops can't resolve, so just return early
@@ -606,7 +614,7 @@ class LopperProp():
 
         while property_iteration_flag:
             for phandle_desc in property_fields:
-                if re.search( '^#.*', phandle_desc ):
+                if re.search( r'^#.*', phandle_desc ):
                     try:
                         field_val = self.node.__props__[phandle_desc].value[0]
                     except Exception as e:
@@ -619,7 +627,7 @@ class LopperProp():
                     group_size = group_size + field_val
                     property_global_index = property_global_index + field_val
 
-                elif re.search( '^\^.*', phandle_desc ):
+                elif re.search( r'^\^.*', phandle_desc ):
                     try:
                         parent_node = None
                         if self.node:
@@ -641,7 +649,7 @@ class LopperProp():
                     group_size = group_size + field_val
                     property_global_index = property_global_index + field_val
 
-                elif re.search( '^phandle', phandle_desc ):
+                elif re.search( r'^phandle', phandle_desc ):
                     derefs = phandle_desc.split(':')
                     phandle_index_list.append( property_global_index )
 
@@ -934,7 +942,7 @@ class LopperProp():
         record_list = []
         for i in prop_val:
             base = 10
-            if re.search( "0x", i ):
+            if re.search( r"0x", i ):
                 base = 16
             try:
                 i_as_int = int(i,base)
@@ -1009,7 +1017,7 @@ class LopperProp():
             if do_indent:
                 dstring = ""
                 dstring = dstring.rjust(len(dstring) + indent + 1, self.node.indent_char)
-                outstring = re.sub( '\n\s*', '\n' + dstring, outstring, 0, re.MULTILINE | re.DOTALL)
+                outstring = re.sub( r'\n\s*', '\n' + dstring, outstring, 0, re.MULTILINE | re.DOTALL)
 
         if outstring:
             print(outstring.rjust(len(outstring)+indent, self.node.indent_char), file=output, flush=True)
@@ -1067,7 +1075,7 @@ class LopperProp():
                         # search of 0x in the string, since it is likely
                         # a number hiding as a string.
                         base = 10
-                        if re.search( "0x", p ):
+                        if re.search( r"0x", p ):
                             base = 16
                         try:
                             i = int(p, base)
@@ -1094,7 +1102,7 @@ class LopperProp():
                 # search of 0x in the string, since it is likely
                 # a number hiding as a string.
                 base = 10
-                if re.search( "0x", self.value ):
+                if re.search( r"0x", self.value ):
                     base = 16
                 try:
                     i = int(self.value, base)
@@ -1126,7 +1134,7 @@ class LopperProp():
         Returns:
            Nothing
         """
-        outstring = "{0} = {1};".format( self.name, self.value )
+        outstring = f"{self.name} = {self.value};"
 
         prop_val = self.value
 
@@ -1135,11 +1143,11 @@ class LopperProp():
         else:
             self.abs_path = self.name
 
-        if re.search( "lopper-comment.*", self.name ):
+        if re.search( r"lopper-comment.*", self.name ):
             prop_type = "comment"
-        elif re.search( "lopper-preamble", self.name ):
+        elif re.search( r"lopper-preamble", self.name ):
             prop_type = "preamble"
-        elif re.search( "lopper-label.*", self.name ):
+        elif re.search( r"lopper-label.*", self.name ):
             prop_type = "label"
         else:
             # we could make this smarter, and use the Lopper Guessed type
@@ -1175,12 +1183,12 @@ class LopperProp():
 
             # print everything but the last element, we'll print it with no newline
             for p in prop_val[:-1]:
-                outstring += "{0}\n".format(p)
+                outstring += f"{p}\n"
 
-            outstring +=  "{0}*/\n".format(prop_val[-1])
+            outstring +=  f"{prop_val[-1]}*/\n"
 
         elif prop_type == int:
-            outstring = "{0} = <{1}>;".format( self.name, hex(prop_val) )
+            outstring = f"{self.name} = <{hex(prop_val)}>;"
         elif prop_type == "json":
             # if this is a json property type, we need to escape any nested double
             # quotes. Otherwise, dtc won't be able to compile the dts.
@@ -1190,15 +1198,15 @@ class LopperProp():
             # we just put out the name
             if len(prop_val) == 0:
                 # outstring = ""
-                outstring = "{0};".format( self.name )
+                outstring = f"{self.name};"
             elif len(prop_val) == 1 and prop_val[0] == '':
-                outstring = "{0};".format( self.name )
+                outstring = f"{self.name};"
             else:
                 # otherwise, we need to iterate and output the elements
                 # as a comma separated list, except for the last item which
                 # ends with a ;
                 outstring = ""
-                outstring_list = "{0} = ".format( self.name )
+                outstring_list = f"{self.name} = "
 
                 # if the attribute was detected as potentially having a
                 # phandle, phandle_map will be non zero.
@@ -1214,7 +1222,7 @@ class LopperProp():
                 if type(prop_val[0]) == str:
                     # is it really a number, hiding as a string ?
                     base = 10
-                    if re.search( "0x", prop_val[0] ):
+                    if re.search( r"0x", prop_val[0] ):
                         base = 16
                     try:
                         i = int(prop_val[0],base)
@@ -1301,24 +1309,24 @@ class LopperProp():
                                         r.label_set( Lopper.phandle_safe_name( r.name ) )
                                         phandle_tgt_name = "&" + r.label
 
-                                phandle_sub_record.append( "{0}".format( phandle_tgt_name ) )
+                                phandle_sub_record.append( f"{phandle_tgt_name}" )
 
                             else:
                                 # r is not set, so this was a "0" in the phandle map, which just
                                 # means "not a phandle". So it is a value we have to encode for output
                                 element = prop_val[pval_index]
                                 if self.binary:
-                                    phandle_sub_record.append( "{0:02X}".format( element ) )
+                                    phandle_sub_record.append( f"{element:02X}" )
                                 else:
                                     try:
                                         if check_32_bit(element):
-                                            hex_string = '0x{:x}'.format(element)
+                                            hex_string = f'0x{element:x}'
                                         else:
                                             upper = element >> 32
                                             lower = element & 0x00000000FFFFFFFF
-                                            hex_string = '0x{:08x}'.format(upper) + ' 0x{:08x}'.format(lower)
+                                            hex_string = f'0x{upper:08x}' + f' 0x{lower:08x}'
                                     except Exception as e:
-                                        hex_string = '{0}'.format( element )
+                                        hex_string = f'{element}'
 
                                     phandle_sub_record.append( hex_string )
 
@@ -1359,21 +1367,21 @@ class LopperProp():
                             
                         if list_of_nums:
                             if self.binary:
-                                formatted_records.append( "{0:02X}".format( i ) )
+                                formatted_records.append( f"{i:02X}" )
                             else:
                                 try:
                                     if check_32_bit(i):
-                                        hex_string = '0x{:x}'.format(i)
+                                        hex_string = f'0x{i:x}'
                                     else:
                                         upper = i >> 32
                                         lower = i & 0x00000000FFFFFFFF
-                                        hex_string = '0x{:08x}'.format(upper) + ' 0x{:08x}'.format(lower)
+                                        hex_string = f'0x{upper:08x}' + f' 0x{lower:08x}'
                                 except Exception as e:
-                                    hex_string = '{0}'.format( i ) 
+                                    hex_string = f'{i}' 
 
                                 formatted_records.append( hex_string )
                         else:
-                            formatted_records.append( "\"{0}\"".format( i ) )
+                            formatted_records.append( f"\"{i}\"" )
 
                     if list_of_nums:
                         if self.binary:
@@ -1393,7 +1401,7 @@ class LopperProp():
                 outstring = outstring_list
 
         else:
-            outstring = "{0} = \"{1}\";".format( self.name, prop_val )
+            outstring = f"{self.name} = \"{prop_val}\";"
 
         if not self.ptype:
             self.ptype = self.property_type_guess()
@@ -2190,7 +2198,7 @@ class LopperNode(object):
             # peek ahead to handle the preamble
             for p in self:
                 if p.pclass == "preamble":
-                    print( "%s" % p, file=output, flush=True )
+                    print( f"{p}", file=output, flush=True )
 
             #print( "/dts-v1/;\n\n/ {", file=output )
             print( "/dts-v1/;\n", file=output, flush=True )
@@ -2198,7 +2206,7 @@ class LopperNode(object):
             if self.tree and self.tree.__memreserve__:
                 mem_res_addr = hex(self.tree.__memreserve__[0] )
                 mem_res_len = hex(self.tree.__memreserve__[1] )
-                print( "/memreserve/ %s %s;\n" % (mem_res_addr,mem_res_len), file=output, flush=True )
+                print( f"/memreserve/ {mem_res_addr} {mem_res_len};\n", file=output, flush=True )
 
             print( "/ {", file=output, flush=True )
 
@@ -2306,13 +2314,13 @@ class LopperNode(object):
             for p in self.__props__.values():
                 dct[p.name] = p.value
                 if p.binary:
-                    dct['__{}_type__'.format(p.name)] = LopperFmt.UINT8
+                    dct[f'__{p.name}_type__'] = LopperFmt.UINT8
                 else:
-                    dct['__{}_type__'.format(p.name)] = p.ptype
+                    dct[f'__{p.name}_type__'] = p.ptype
 
-                dct['__{}_pclass__'.format(p.name)] = p.pclass
+                dct[f'__{p.name}_pclass__'] = p.pclass
 
-                lopper.log._debug( f"       node export: [{p.ptype}] property: {p.name} (state:{p.__pstate__})(type:{dct['__{}_type__'.format(p.name)]})" )
+                lopper.log._debug( f"       node export: [{p.ptype}] property: {p.name} (state:{p.__pstate__})(type:{dct[f'__{p.name}_type__']})" )
 
             if self.label:
                 # there can only be one label per-node. The node may already have
@@ -2734,7 +2742,7 @@ class LopperNode(object):
 
                         self.parent.child_nodes[self.abs_path] = self
 
-                depth = len(re.findall( '/', self.abs_path ))
+                depth = len(re.findall( r'/', self.abs_path ))
             else:
                 depth = 0
 
@@ -2748,14 +2756,14 @@ class LopperNode(object):
             label_props = []
 
             for prop, prop_val in dct.items():
-                if re.search( "^__", prop ) or prop.startswith( '/' ):
+                if re.search( r"^__", prop ) or prop.startswith( r'/' ):
                     # internal property, skip
                     continue
 
                 dtype = LopperFmt.UINT8
                 try:
                     # see if we got a type hint as part of the input dictionary
-                    dtype = dct['__{}_type__'.format(prop)]
+                    dtype = dct[f'__{prop}_type__']
                 except Exception as e:
                     pass
 
@@ -2763,7 +2771,7 @@ class LopperNode(object):
 
                 try:
                     # see if we got a property class as part of the input dictionary
-                    pclass = dct['__{}_pclass__'.format(prop)]
+                    pclass = dct[f'__{prop}_pclass__']
                 except Exception as e:
                     if re.search( r'lopper-comment-.*', prop ):
                         pclass = "comment"
@@ -2781,7 +2789,7 @@ class LopperNode(object):
                 if prop == "compatible":
                     self.type += prop_val
                     for p in prop_val:
-                        if re.search( "phandle-desc.*", p ):
+                        if re.search( r"phandle-desc.*", p ):
                             strict = False
 
                 # create property objects, and resolve them
@@ -2904,7 +2912,7 @@ class LopperNode(object):
         if self.abs_path == "/":
             self.depth = 0
         else:
-            self.depth = len(re.findall( '/', self.abs_path ))
+            self.depth = len(re.findall( r'/', self.abs_path ))
 
         lopper.log._debug( f"node resolve: calculating depth {self.abs_path} for: {self.depth}" )
 
@@ -4100,7 +4108,7 @@ class LopperTree:
 
             if not existing_node:
                 if self.__dbg__ > 2:
-                    print ( "[DBG+++]:     node add: adding child: %s (%s)" % (child.abs_path,[child]))
+                    print ( f"[DBG+++]:     node add: adding child: {child.abs_path} ({[child]})")
 
                 # this mainly adjusts the path, since it hasn't been sync'd yet.
                 child.number = -1
@@ -4118,7 +4126,7 @@ class LopperTree:
                 self.add( child, True )
 
                 if self.__dbg__ > 2:
-                    print ( "[DBG+++]:     node add: child add complete: %s (%s)" % (child.abs_path,[child]))
+                    print ( f"[DBG+++]:     node add: child add complete: {child.abs_path} ({[child]})")
 
         # in case the node has properties that were previously sync'd, we
         # need to resync them
@@ -4492,13 +4500,13 @@ class LopperTree:
             mod_load = "assist_dir = os.path.dirname(os.path.realpath(__file__)) + '/assists/'\n"
             mod_load += "sys.path.append(assist_dir)\n"
             for m in module_load_paths:
-                mod_load += "sys.path.append('{}')\n".format( m )
+                mod_load += f"sys.path.append('{m}')\n"
             mod_load += "import importlib\n"
         else:
             mod_load = ""
 
         for m in module_list:
-            mod_load += "{} = importlib.import_module( '.{}', package='lopper.assists' )\n".format(m,m)
+            mod_load += f"{m} = importlib.import_module( '.{m}', package='lopper.assists' )\n"
 
         tc = cmd
 
@@ -4599,9 +4607,9 @@ class LopperTree:
             lopper.log._error( f"no nodes found that match prefix {node_prefix}" )
 
         if verbose > 1:
-            lopper.log._debug( f"filter: node list: ", end=" " )
+            lopper.log._debug( f"filter: node list: " )
             for nn in node_list:
-                lopper.log._debug( f"    {nn.abs_path}", end="  " )
+                lopper.log._debug( f"    {nn.abs_path}" )
             lopper.log._debug( f"" )
 
         for n in node_list:

@@ -3,6 +3,60 @@ from lopper.tree import *
 KERNEL_FLAG = 'openamp-xlnx-kernel'
 HOST_FLAG = 'openamp-host'
 
+machine_to_dt_mappings = {
+    "psu_cortexr5_0" : "/rf5ss@ff9a0000/r5f_0", "psu_cortexr5_1" : "/rf5ss@ff9a0000/r5f_1",
+    "psv_cortexr5_0" : "/rf5ss@ff9a0000/r5f_0", "psv_cortexr5_1" : "/rf5ss@ff9a0000/r5f_1",
+    "psx_cortexr52_0" : "/rf52ss_0@ff9a0100/r52f_0", "psx_cortexr52_1" : "/rf52ss_0@ff9a0100/r52f_1",
+    "psx_cortexr52_2" : "/rf52ss_1@ff9a0200/r52f_2", "psx_cortexr52_3" : "/rf52ss_1@ff9a0200/r52f_3",
+}
+
+machine_to_dt_mappings_v2 = {
+    "psu_cortexr5_0" : "/remoteproc@ffe00000/r5f@0", "psu_cortexr5_1" : "/remoteproc@ffe00000/r5f@1",
+    "psv_cortexr5_0" : "/remoteproc@ffe00000/r5f@0", "psv_cortexr5_1" : "/remoteproc@ffe00000/r5f@1",
+
+    "psx_cortexr52_0" : "/remoteproc@eba00000/r52f@0", "psx_cortexr52_1" : "/remoteproc@eba00000/r52f@1",
+    "psx_cortexr52_2" : "/remoteproc@eba40000/r52f@2", "psx_cortexr52_3" : "/remoteproc@eba40000/r52f@3",
+
+    "cortexr52_0" : "/remoteproc@eba00000/r52f@0", "cortexr52_1" : "/remoteproc@0xeba00000/r52f@1",
+    "cortexr52_2" : "/remoteproc@ebb00000/r52f@2", "cortexr52_3" : "/remoteproc@0xebb00000/r52f@3",
+    "cortexr52_4" : "/remoteproc@ebc00000/r52f@4", "cortexr52_5" : "/remoteproc@0xebc00000/r52f@5",
+    "cortexr52_6" : "/remoteproc@ebac0000/r52f@6", "cortexr52_7" : "/remoteproc@0xebac0000/r52f@7",
+    "cortexr52_8" : "/remoteproc@ebbc0000/r52f@8", "cortexr52_9" : "/remoteproc@0xebbc0000/r52f@9",
+}
+
+zynqmp_ipi_id_to_baseaddr = {
+  1 : 0xFF310000,
+  2 : 0xFF320000,
+  7 : 0xFF340000,
+  8 : 0xFF350000,
+}
+
+versal_ipi_id_to_baseaddr = {
+  2 : 0xFF330000,
+  3 : 0xFF340000,
+  4 : 0xFF350000,
+  5 : 0xFF360000,
+  6 : 0xFF370000,
+  7 : 0xFF380000,
+  9 : 0xFF3A0000,
+}
+
+vnet_ipi_id_to_baseaddr = {
+  2 : 0xEB330000,
+  3 : 0xEB340000,
+  4 : 0xEB350000,
+  5 : 0xEB360000,
+  6 : 0xEB370000,
+  7 : 0xEB380000,
+  9 : 0xEB3A0000,
+  10 : 0xEB3B0000,
+  11 : 0xEB3B1000,
+  12 : 0xEB3B2000,
+  13 : 0xEB3B3000,
+  14 : 0xEB3B4000,
+  15 : 0xEB3B5000,
+}
+
 zynqmp_ipi_to_irq_vect_id = {
   0xff330000 : 62,
   0xFF340000 : 63,
@@ -19,6 +73,13 @@ versal_net_ipi_to_irq_vect_id = {
     0xeb360000 : 0x3c,
     0xeb370000 : 0x3d,
     0xeb380000 : 0x3e,
+    0xeb3a0000 : 0x3f,
+    0xeb3b0000 : 0x40,
+    0xeb3b1000 : 0x41,
+    0xeb3b2000 : 0x42,
+    0xeb3b3000 : 0x43,
+    0xeb3b4000 : 0x44,
+    0xeb3b5000 : 0x45,
 }
 
 versal_ipi_to_irq_vect_id = {
@@ -30,14 +91,27 @@ versal_ipi_to_irq_vect_id = {
     0xFF380000 : 67,
 }
 
-openamp_linux_hosts = [ "psv_cortexa72_0", "psx_cortexa78_0", "psu_cortexa53_0" ]
+openamp_linux_hosts = [ "psv_cortexa72_0", "psx_cortexa78_0", "psu_cortexa53_0", "cortexa78_0" ]
 openamp_roles = { openamp_linux_hosts[0] : "a72_0",
                   openamp_linux_hosts[1] : "a78_0",
+                  openamp_linux_hosts[3] : "a78_0",
                   openamp_linux_hosts[2] : "a53_0",
                   "psx_cortexr52_0" : "r52_0",
                   "psx_cortexr52_1" : "r52_1",
                   "psx_cortexr52_2" : "r52_2",
                   "psx_cortexr52_3" : "r52_3",
+
+                  "cortexr52_0" : "r52_0",
+                  "cortexr52_1" : "r52_1",
+                  "cortexr52_2" : "r52_2",
+                  "cortexr52_3" : "r52_3",
+                  "cortexr52_4" : "r52_4",
+                  "cortexr52_5" : "r52_5",
+                  "cortexr52_6" : "r52_6",
+                  "cortexr52_7" : "r52_7",
+                  "cortexr52_8" : "r52_8",
+                  "cortexr52_9" : "r52_9",
+
                   "psu_cortexr5_0" : "r5_0",
                   "psu_cortexr5_1" : "r5_1",
                   "psv_cortexr5_1" : "r5_1",
@@ -49,6 +123,7 @@ class SOC_TYPE:
     ZYNQMP = 1
     ZYNQ = 2
     VERSAL_NET = 3
+    VERSAL2 = 4
 
 
 def resolve_remoteproc_carveouts( tree, subnode, verbose = 0 ):
@@ -56,37 +131,40 @@ def resolve_remoteproc_carveouts( tree, subnode, verbose = 0 ):
     domain_node = None
     new_prop_val = []
 
+    if subnode.props("remote") == []:
+        print("WARNING:", "remoteproc relation does not have elfload carveouts", subnode.abs_path)
+        return False
+
     if subnode.props("elfload") == []:
         print("WARNING:", "remoteproc relation does not have elfload carveouts", subnode.abs_path)
         return False
 
-    prop = subnode.props("elfload")[0]
+    elfload_lists = json.loads(subnode.props("elfload")[0].value)
 
-    # for each carveout
-    # look for it in domain's reserved memory
-    # get or create phandle of the carveout
-    for carveout_str in prop.value:
-        current_node = None
+    for row_idx, row in enumerate(elfload_lists):
+        new_row = []
+        for carveout_str in row:
+            current_node = None
+            for n in subnode.tree["/"].subnodes():
+                if carveout_str == n.name or carveout_str == n.label:
+                    current_node = n
+                    break
+            if current_node == None:
+                print("ERROR: Unable to find referenced node name: ", carveout_str)
+                return False
 
-        for n in subnode.tree["/"].subnodes():
-            if carveout_str == n.name or carveout_str == n.label:
-                current_node = n
-                break
+            if current_node.phandle == 0:
+                current_node.phandle_or_create()
 
-        if current_node == None:
-            print("WARNING:", "rpmsg relation can't find carveout name", carveout_str)
-            return False
+            if current_node.props("phandle") == []:
+               current_node + LopperProp(name="phandle", value=current_node.phandle)
 
-        if current_node.phandle == 0:
-            current_node.phandle_or_create()
+            new_row.append(current_node.phandle)
 
-        if current_node.props("phandle") == []:
-            current_node + LopperProp(name="phandle", value=current_node.phandle)
+        subnode + LopperProp(name="elfload"+str(row_idx), value = new_row)
 
-        new_prop_val.append(current_node.phandle)
-
-    # update value of property to have phandles
-    prop.value = new_prop_val
+    # Strip out now unused property
+    subnode.props("elfload")[0].value = []
 
     return True
 
@@ -159,8 +237,6 @@ def resolve_rpmsg_mbox( tree, subnode, verbose = 0 ):
 
     for i, mbox_node in enumerate(mbox_nodes):
         prop = props[i]
-        if mbox_node == None:
-            print("resolve_rpmsg_mbox: ", tree.lnodes(n.name, exact = False) )
         if mbox_node == None or mbox_node == []:
             print("WARNING:", "rpmsg relation can't find mbox name: ", prop.value)
             return False
@@ -179,12 +255,12 @@ def resolve_rpmsg_mbox( tree, subnode, verbose = 0 ):
 
 def resolve_host_remote( tree, subnode, verbose = 0 ):
     prop_names = [ "host", "remote" ]
-            
+
     if subnode.props(prop_names[0]) != [] and subnode.props(prop_names[1]) != []:
         print("WARNING:", "relation has both host and remote")
         return False
     for pn in prop_names:
-        if subnode.props(pn) != [] and subnode.props(pn) != []:
+        if subnode.props(pn) != []:
             prop_val = subnode.props(pn)[0].value
             new_prop_val = []
             for p in prop_val:
@@ -281,8 +357,6 @@ platform_info_header_r5_template = """
 #define SHM_DEV_NAME            $SHM_DEV_NAME
 #define DEV_BUS_NAME            $DEV_BUS_NAME
 #define IPI_DEV_NAME            $IPI_DEV_NAME
-#define RSC_MEM_SIZE            $RSC_MEM_SIZE
-#define RSC_MEM_PA              $RSC_MEM_PA
 #define SHARED_BUF_PA           $SHARED_BUF_PA
 #define SHARED_BUF_SIZE         $SHARED_BUF_SIZE
 

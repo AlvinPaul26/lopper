@@ -96,7 +96,7 @@ def xlnx_generate_testapp(tgt_node, sdt, options):
                 drv_path_in_yaml = drv_data[entries]['path'][0]
             drv_name_in_yaml = os.path.basename(drv_path_in_yaml)
             # Incase of versioned component strip the version info
-            drv_name_in_yaml = re.split("_v(\d+)_(\d+)", drv_name_in_yaml)[0]
+            drv_name_in_yaml = re.split(r"_v(\d+)_(\d+)", drv_name_in_yaml)[0]
             yaml_file_list += [os.path.join(drv_path_in_yaml, 'data', f"{drv_name_in_yaml}.yaml")]
     else:
         drv_dir = os.path.join(repo_path_data, "XilinxProcessorIPLib", "drivers")
@@ -206,7 +206,7 @@ def xlnx_generate_testapp(tgt_node, sdt, options):
                             valid_ex = 0
                             match_list = []
                             if drv_config_name == 'XAxiCdma':
-                                mem_ranges = get_memranges(tgt_node, sdt, options)
+                                mem_ranges, _ = get_memranges(tgt_node, sdt, options)
                                 for mem in list_of_mem_list:
                                     if any(mem in mem_name for mem_name in mem_ranges.keys()):
                                         match_list.append(True)
